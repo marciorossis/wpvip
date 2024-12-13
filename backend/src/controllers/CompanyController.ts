@@ -1,21 +1,24 @@
-import * as Yup from "yup";
 import { Request, Response } from "express";
+import * as Yup from "yup";
 // import { getIO } from "../libs/socket";
+import authConfig from "../config/auth";
 import AppError from "../errors/AppError";
 import Company from "../models/Company";
-import authConfig from "../config/auth";
-
-import ListCompaniesService from "../services/CompanyService/ListCompaniesService";
-import CreateCompanyService from "../services/CompanyService/CreateCompanyService";
-import UpdateCompanyService from "../services/CompanyService/UpdateCompanyService";
-import ShowCompanyService from "../services/CompanyService/ShowCompanyService";
-import UpdateSchedulesService from "../services/CompanyService/UpdateSchedulesService";
-import DeleteCompanyService from "../services/CompanyService/DeleteCompanyService";
-import FindAllCompaniesService from "../services/CompanyService/FindAllCompaniesService";
+import fs from "fs";
+import path from "path";
 import { verify } from "jsonwebtoken";
 import User from "../models/User";
-import ShowPlanCompanyService from "../services/CompanyService/ShowPlanCompanyService";
+import CreateCompanyService from "../services/CompanyService/CreateCompanyService";
+import DeleteCompanyService from "../services/CompanyService/DeleteCompanyService";
+import FindAllCompaniesService from "../services/CompanyService/FindAllCompaniesService";
 import ListCompaniesPlanService from "../services/CompanyService/ListCompaniesPlanService";
+import ListCompaniesService from "../services/CompanyService/ListCompaniesService";
+import ShowCompanyService from "../services/CompanyService/ShowCompanyService";
+import ShowPlanCompanyService from "../services/CompanyService/ShowPlanCompanyService";
+import UpdateCompanyService from "../services/CompanyService/UpdateCompanyService";
+import UpdateSchedulesService from "../services/CompanyService/UpdateSchedulesService";
+
+const publicFolder = path.resolve(__dirname, "..", "..", "public");
 
 type IndexQuery = {
   searchParam: string;
@@ -132,9 +135,26 @@ export const remove = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
+  const userId = req.user.id;
+  const requestUser = await User.findByPk(userId);
+
+  if (requestUser.super === false) {
+    throw new AppError("você nao tem permissão para este consulta");
+  }
   const { id } = req.params;
 
+  if (fs.existsSync(`${publicFolder}/company${id}/`)) {
+
+    const removefolder = await fs.rmdirSync(`${publicFolder}/company${id}/`, {
+      recursive: true,
+    });
+
+  }
+
   const company = await DeleteCompanyService(id);
+
+
+  //fs.remove(`${publicFolder}/company${id}/`);
 
   return res.status(200).json(company);
 };
